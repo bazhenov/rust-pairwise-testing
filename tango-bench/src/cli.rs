@@ -49,6 +49,10 @@ enum BenchmarkMode {
         #[arg(short = 's', long = "samples")]
         samples: Option<NonZeroUsize>,
 
+        /// the maximum duration of each sample
+        #[arg(long = "time-slice", default_value_t = 1)]
+        time_slice: u32,
+
         #[arg(long = "sampler")]
         sampler: Option<SamplerType>,
 
@@ -139,6 +143,7 @@ pub fn run(mut settings: MeasurementSettings) -> Result<ExitCode> {
             fail_threshold,
             significant_only,
             seed,
+            time_slice,
             sampler,
         } => {
             let mut reporter: Box<dyn Reporter> = if verbose {
@@ -168,8 +173,15 @@ pub fn run(mut settings: MeasurementSettings) -> Result<ExitCode> {
             let filter = filter.as_deref().unwrap_or("");
 
             let loop_mode = create_loop_mode(samples, time)?;
-            let paired_test =
-                PairedTest::new(&spi_lib, &spi_self, settings, seed, loop_mode, path_to_dump);
+            let paired_test = PairedTest::new(
+                &spi_lib,
+                &spi_self,
+                settings,
+                seed,
+                loop_mode,
+                path_to_dump,
+                time_slice,
+            );
 
             for func in spi_self.tests() {
                 if !filter.is_empty() && !glob_match(filter, &func.name) {
@@ -305,6 +317,7 @@ mod commands {
         settings: MeasurementSettings,
         loop_mode: LoopMode,
         samples_dump_path: Option<PathBuf>,
+        time_slice_ms: u32,
     }
 
     impl<'a> PairedTest<'a> {
@@ -315,6 +328,7 @@ mod commands {
             seed: Option<u64>,
             loop_mode: LoopMode,
             samples_dump_path: Option<PathBuf>,
+            time_slice_ms: u32,
         ) -> Self {
             let seed = seed.unwrap_or_else(rand::random);
             Self {
@@ -324,6 +338,7 @@ mod commands {
                 settings,
                 loop_mode,
                 samples_dump_path,
+                time_slice_ms,
             }
         }
 
@@ -347,8 +362,9 @@ mod commands {
             let mut b_func = TestedFunction::new(self.candidate, b_func);
 
             // Estimating the number of iterations achievable in 1 ms
-            let iterations_per_1ms =
-                a_func.estimate_iterations(1) / 2 + b_func.estimate_iterations(1) / 2;
+            let iterations_per_1ms = a_func.estimate_iterations(self.time_slice_ms) / 2
+                + b_func.estimate_iterations(self.time_slice_ms) / 2;
+
             let mut sampler = create_sampler(&self.settings, iterations_per_1ms, seed);
 
             let mut i = 0;
