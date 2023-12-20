@@ -476,7 +476,7 @@ pub const DEFAULT_SETTINGS: MeasurementSettings = MeasurementSettings {
     filter_outliers: false,
     samples_per_haystack: 1,
     min_iterations_per_sample: 1,
-    max_iterations_per_sample: 5000,
+    max_iterations_per_sample: usize::max_value(),
     sampler_type: SamplerType::Random,
 };
 
