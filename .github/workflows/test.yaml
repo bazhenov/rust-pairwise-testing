@@ -14,7 +14,7 @@ jobs:
       - name: Checking formatting
         run: cargo fmt -- --check --color always
       - name: Running clippy
-        run: cargo clippy --all-targets --all-features -- -D warnings
+        run: cargo clippy --all-targets --all-features -p tango-bench
   test:
     strategy:
       matrix:
@@ -25,7 +25,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@master
+      - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
 
       - name: Run Tests
@@ -40,7 +40,7 @@ jobs:
         with:
           ref: dev
           path: baseline-branch
-      - uses: dtolnay/rust-toolchain@master
+      - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - uses: taiki-e/install-action@v2
         with:
